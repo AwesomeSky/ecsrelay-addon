@@ -23,12 +23,17 @@ PAIR_PIN=$(opt pairPin)
 [[ -n "$TARGET" ]] || TARGET=homeassistant:80
 
 fail() { echo "配置错误：$1" >&2; exit 1; }
-[[ -n "$RELAY" ]] || fail "内网 relay 地址没填（形如 172.16.11.150:28443）"
-[[ -n "$PIN"   ]] || fail "内网 relay 证书 pin 没填（ecsrelay pinof 得到，64 位 hex）"
-[[ -n "$TOKEN" ]] || fail "房间共享令牌没填（与 relay 上该房间的 token 一致）"
+
+if [[ -z "$RELAY" && -z "$RELAY_PUBLIC" ]]; then
+  fail "内网 relay 与公网 relay 至少填一个"
+fi
+if [[ -n "$RELAY" && -z "$PIN" ]]; then
+  fail "填了内网 relay 地址但没填它的 pin（ecsrelay pinof 得到，64 位 hex）"
+fi
 if [[ -n "$RELAY_PUBLIC" && -z "$PIN_PUBLIC" ]]; then
   fail "填了公网 relay 地址但没填它的 pin"
 fi
+[[ -n "$TOKEN" ]] || fail "房间共享令牌没填（与 relay 上该房间的 token 一致）"
 
 # 共享令牌落到 0600 的文件里，再用 -token-file 传入：
 # 命令行参数会出现在容器内的 ps 输出里，没必要冒这个险。
@@ -42,17 +47,26 @@ if [[ -z "$PAIR_PIN" ]]; then
   echo "本次启动随机生成配对口令：$PAIR_PIN"
 fi
 
-# 端点：内网 relay 走 -lan（优先级 0，在家直接走局域网）；
-# 配了公网才加 -relay 并开 -connect-all，让两个 relay 同时都有 agent 在线
-# （否则 agent 在家时占着内网 relay，人在外面时公网 relay 上没有 agent，反而连不上）。
-PINS="$PIN"
-ENDPOINTS=(-lan "$RELAY")
+# 端点组合：
+#   只填内网  → 单端点，在家用局域网
+#   只填公网  → 单端点，任何地方都走 ECS（家里也是，延迟高一些但能通）
+#   两个都填  → -connect-all，两个 relay 同时有 agent 在线
+#               （否则 agent 在家时占着内网 relay，人在外面时公网 relay 上没有 agent，反而连不上）
+ENDPOINTS=()
+PINS=""
+if [[ -n "$RELAY" ]]; then
+  ENDPOINTS+=(-lan "$RELAY")
+  PINS="$PIN"
+fi
 if [[ -n "$RELAY_PUBLIC" ]]; then
-  PINS="$PIN,$PIN_PUBLIC"
-  ENDPOINTS+=(-relay "$RELAY_PUBLIC" -connect-all)
+  ENDPOINTS+=(-relay "$RELAY_PUBLIC")
+  PINS="${PINS:+$PINS,}$PIN_PUBLIC"
+  if [[ -n "$RELAY" ]]; then
+    ENDPOINTS+=(-connect-all)
+  fi
 fi
 
-echo "端点：$RELAY${RELAY_PUBLIC:+ + $RELAY_PUBLIC}  目标：$TARGET  房间：$ROOM"
+echo "端点：${RELAY:-（无内网）}${RELAY_PUBLIC:+ + $RELAY_PUBLIC}  目标：$TARGET  房间：$ROOM"
 echo "配对页：打开 Web UI 后输入上面的口令；日志里不会出现设备令牌。"
 
 exec /usr/bin/ecsrelay agent \
