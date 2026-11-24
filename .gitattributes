@@ -1,0 +1,9 @@
+# Supervisor 在容器里 clone，必须是 LF，否则 run.sh 会因 \r 报 "bad interpreter"
+* text=auto eol=lf
+*.sh       text eol=lf
+Dockerfile text eol=lf
+*.yaml     text eol=lf
+*.yml      text eol=lf
+
+# 预编译二进制，别做任何转换
+ecsrelay/bin/* binary
