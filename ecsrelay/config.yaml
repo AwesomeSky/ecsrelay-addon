@@ -1,5 +1,5 @@
-﻿name: ECSRelay Tunnel
-version: "0.1.1"
+name: ECSRelay Tunnel
+version: "0.1.2"
 slug: ecsrelay
 description: 反向隧道 agent —— 让 Home Assistant 在没有端口映射的情况下也能从外网访问
 url: https://github.com/AwesomeSky/ecsrelay-addon
@@ -20,6 +20,8 @@ ports_description:
 options:
   relay: ""
   pin: ""
+  relayPublic: ""
+  pinPublic: ""
   token: ""
   room: home
   target: homeassistant:80
@@ -27,6 +29,8 @@ options:
 schema:
   relay: str
   pin: str
+  relayPublic: "str?"
+  pinPublic: "str?"
   token: password
   room: str
   target: str

@@ -8,17 +8,27 @@ if [[ ! -f "$OPTIONS" ]]; then
   exit 1
 fi
 
-RELAY=$(jq -r '.relay // ""' "$OPTIONS")
-PIN=$(jq -r '.pin // ""' "$OPTIONS")
-TOKEN=$(jq -r '.token // ""' "$OPTIONS")
-ROOM=$(jq -r '.room // "home"' "$OPTIONS")
-TARGET=$(jq -r '.target // "homeassistant:80"' "$OPTIONS")
-PAIR_PIN=$(jq -r '.pairPin // ""' "$OPTIONS")
+opt() { jq -r --arg k "$1" '.[$k] // ""' "$OPTIONS"; }
+
+RELAY=$(opt relay)
+PIN=$(opt pin)
+RELAY_PUBLIC=$(opt relayPublic)
+PIN_PUBLIC=$(opt pinPublic)
+TOKEN=$(opt token)
+ROOM=$(opt room)
+TARGET=$(opt target)
+PAIR_PIN=$(opt pairPin)
+
+[[ -n "$ROOM"   ]] || ROOM=home
+[[ -n "$TARGET" ]] || TARGET=homeassistant:80
 
 fail() { echo "配置错误：$1" >&2; exit 1; }
-[[ -n "$RELAY" ]] || fail "relay 地址没填（形如 1.2.3.4:28443）"
-[[ -n "$PIN"   ]] || fail "证书 pin 没填（用 ecsrelay pinof 算，64 位 hex）"
-[[ -n "$TOKEN" ]] || fail "共享令牌没填（与 relay 的房间令牌一致）"
+[[ -n "$RELAY" ]] || fail "内网 relay 地址没填（形如 172.16.11.150:28443）"
+[[ -n "$PIN"   ]] || fail "内网 relay 证书 pin 没填（ecsrelay pinof 得到，64 位 hex）"
+[[ -n "$TOKEN" ]] || fail "房间共享令牌没填（与 relay 上该房间的 token 一致）"
+if [[ -n "$RELAY_PUBLIC" && -z "$PIN_PUBLIC" ]]; then
+  fail "填了公网 relay 地址但没填它的 pin"
+fi
 
 # 共享令牌落到 0600 的文件里，再用 -token-file 传入：
 # 命令行参数会出现在容器内的 ps 输出里，没必要冒这个险。
@@ -31,11 +41,23 @@ if [[ -z "$PAIR_PIN" ]]; then
   PAIR_PIN=$(tr -dc '0-9' </dev/urandom | head -c 6 || true)
   echo "本次启动随机生成配对口令：$PAIR_PIN"
 fi
+
+# 端点：内网 relay 走 -lan（优先级 0，在家直接走局域网）；
+# 配了公网才加 -relay 并开 -connect-all，让两个 relay 同时都有 agent 在线
+# （否则 agent 在家时占着内网 relay，人在外面时公网 relay 上没有 agent，反而连不上）。
+PINS="$PIN"
+ENDPOINTS=(-lan "$RELAY")
+if [[ -n "$RELAY_PUBLIC" ]]; then
+  PINS="$PIN,$PIN_PUBLIC"
+  ENDPOINTS+=(-relay "$RELAY_PUBLIC" -connect-all)
+fi
+
+echo "端点：$RELAY${RELAY_PUBLIC:+ + $RELAY_PUBLIC}  目标：$TARGET  房间：$ROOM"
 echo "配对页：打开 Web UI 后输入上面的口令；日志里不会出现设备令牌。"
 
 exec /usr/bin/ecsrelay agent \
-  -relay "$RELAY" \
-  -pin "$PIN" \
+  "${ENDPOINTS[@]}" \
+  -pin "$PINS" \
   -token-file /data/relay-token \
   -room "$ROOM" \
   -target "$TARGET" \
