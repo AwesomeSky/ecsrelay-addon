@@ -1,0 +1,33 @@
+name: ECSRelay Tunnel
+version: "0.1.0"
+slug: ecsrelay
+description: 反向隧道 agent —— 让 Home Assistant 在没有端口映射的情况下也能从外网访问
+url: https://github.com/AwesomeSky/ECSRelay
+arch:
+  - amd64
+  - aarch64
+startup: services
+boot: auto
+init: false
+
+# 不开 ingress、不加侧边栏面板：只提供 Web UI 按钮，从「设置 → 加载项 → ECSRelay Tunnel」进入。
+webui: "http://[HOST]:[PORT:28445]/"
+ports:
+  "28445/tcp": 28445
+ports_description:
+  "28445/tcp": 配对页面（会签发设备令牌，请配合 pairPin 使用）
+
+options:
+  relay: ""
+  pin: ""
+  token: ""
+  room: home
+  target: homeassistant:80
+  pairPin: ""
+schema:
+  relay: str
+  pin: str
+  token: password
+  room: str
+  target: str
+  pairPin: password
