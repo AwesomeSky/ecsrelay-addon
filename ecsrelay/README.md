@@ -4,42 +4,18 @@
 
 ## 添加到 Home Assistant
 
-> ⚠ **本仓库目前是私有的**，Home Assistant 添加仓库时**不带任何凭据**去抓
-> `repository.yaml`。实测匿名访问返回 `404`：
->
-> ```
-> 404  https://raw.githubusercontent.com/AwesomeSky/ECSRelay/main/repository.yaml
-> 404  https://github.com/AwesomeSky/ECSRelay/raw/main/repository.yaml
-> ```
->
-> 所以**照下面第 2 步直接填仓库地址会失败**。必须二选一：
+> 本仓库是**公开**的，直接添加即可，不需要任何 token 或凭据。
 
-### 方案 A：把仓库设为公开（推荐，前提是不含密钥）
-
-仓库里只有：源码、文档、示例配置（令牌全是占位符）、公开指纹（证书 pin）。
-**没有任何真实令牌**。若确认没有别的东西要藏，公开是最省事的：
-
-```bash
-gh repo edit AwesomeSky/ECSRelay --visibility public --accept-visibility-change-consequences
-```
-
-之后按下面的标准步骤即可。
-
-### 方案 B：在 URL 里带只读凭据（仓库保持私有）
-
-把 Personal Access Token（**只需 `repo` 读权限**）拼进仓库地址：
+要填入的仓库地址：
 
 ```
-https://<你的用户名>:<token>@github.com/AwesomeSky/ECSRelay
+https://github.com/AwesomeSky/ecsrelay-addon
 ```
 
-> ⚠ 这会把这个 token 存进 HA 的配置里，**在 HA 界面和日志中都可能看到**。
-> 一旦泄露，它对该账号的所有可见仓库都有读权限。若用这一方案：
-> - 用**单独的细粒度 token**，只授权这一个仓库、只读；
-> - 定期轮换（参考 `tools/aliyun/ROTATION.md` 的轮换习惯）；
-> - 不要把 URL 截图外传。
+> 更新方式：HA 会在加载项页面提示可更新版本；
+> 安装后显示的版本号就是本仓库 `ecsrelay/config.yaml` 里的 `version`。
 
-### 标准步骤（方案 A 生效后，或方案 B 已改好 URL）
+### 标准步骤
 
 1. 设置 → 加载项 → 右下角「加载项商店」
 2. 右上角 ⋮ →「仓库」→ 填入上面**实际可用**的地址
