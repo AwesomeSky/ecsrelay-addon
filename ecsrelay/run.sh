@@ -52,15 +52,16 @@ fi
 #   只填公网  → 单端点，任何地方都走 ECS（家里也是，延迟高一些但能通）
 #   两个都填  → -connect-all，两个 relay 同时有 agent 在线
 #               （否则 agent 在家时占着内网 relay，人在外面时公网 relay 上没有 agent，反而连不上）
+# 每个端点只带**自己的** pin。
+#
+# 不要把两个 pin 合并成全局 -pin：那样内网 relay 的证书也能冒充公网入口
+# （反之亦然），一个入口被攻破就等于两个都失守。
 ENDPOINTS=()
-PINS=""
 if [[ -n "$RELAY" ]]; then
-  ENDPOINTS+=(-lan "$RELAY")
-  PINS="$PIN"
+  ENDPOINTS+=(-lan "$RELAY" -lan-pin "$PIN")
 fi
 if [[ -n "$RELAY_PUBLIC" ]]; then
-  ENDPOINTS+=(-relay "$RELAY_PUBLIC")
-  PINS="${PINS:+$PINS,}$PIN_PUBLIC"
+  ENDPOINTS+=(-relay "$RELAY_PUBLIC" -relay-pin "$PIN_PUBLIC")
   if [[ -n "$RELAY" ]]; then
     ENDPOINTS+=(-connect-all)
   fi
@@ -71,7 +72,6 @@ echo "配对页：打开 Web UI 后输入上面的口令；日志里不会出现
 
 exec /usr/bin/ecsrelay agent \
   "${ENDPOINTS[@]}" \
-  -pin "$PINS" \
   -token-file /data/relay-token \
   -room "$ROOM" \
   -target "$TARGET" \
