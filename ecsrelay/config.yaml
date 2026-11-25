@@ -1,5 +1,5 @@
 name: ECSRelay Tunnel
-version: "0.1.57"
+version: "0.1.58"
 slug: ecsrelay
 description: 反向隧道 agent —— 让 Home Assistant 在没有端口映射的情况下也能从外网访问
 url: https://github.com/AwesomeSky/ecsrelay-addon
