@@ -13,4 +13,17 @@ RUN chmod +x /usr/bin/ecsrelay
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
+# 把版本写进镜像标签。
+#
+# HA 构建镜像时会传 --build-arg BUILD_VERSION=<加载项版本>，但这里原来没有
+# ARG 接收，于是构建日志里出现 "[Warning] One or more build-args
+# [BUILD_VERSION] were not consumed"，镜像本身也没有任何版本痕迹——
+# `docker inspect` 看不出版本，只能进容器跑 `ecsrelay version`。
+ARG BUILD_VERSION=dev
+LABEL \
+  io.hass.version="${BUILD_VERSION}" \
+  io.hass.type="addon" \
+  io.hass.name="ECSRelay Tunnel" \
+  io.hass.description="反向隧道 agent —— 让 Home Assistant 在没有端口映射的情况下也能从外网访问"
+
 CMD [ "/run.sh" ]
